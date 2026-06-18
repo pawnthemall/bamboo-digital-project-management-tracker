@@ -12,8 +12,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -123,27 +125,29 @@ export default function LoginPage() {
       <p className="mt-4 text-xs text-muted">
         Enter your credentials to continue.
       </p>
-      {isInstalled ? (
-        <p className="mt-4 text-xs text-accent-green">App is installed. Enjoy!</p>
-      ) : deferredPrompt ? (
-        <div className="mt-4 border border-border bg-surface p-3">
-          <p className="text-xs text-muted mb-2">Install BambooDigital for quick access from your home screen.</p>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!deferredPrompt) return;
-              await (deferredPrompt as any).prompt();
-              const { outcome } = await (deferredPrompt as any).userChoice;
-              if (outcome === "accepted") {
-                setDeferredPrompt(null);
-              }
-            }}
-            className="w-full bg-accent-green text-background py-2 font-bold hover:bg-foreground transition-colors"
-          >
-            INSTALL APP
-          </button>
-        </div>
-      ) : null}
+      {mounted && (
+        isInstalled ? (
+          <p className="mt-4 text-xs text-accent-green">App is installed. Enjoy!</p>
+        ) : deferredPrompt ? (
+          <div className="mt-4 border border-border bg-surface p-3">
+            <p className="text-xs text-muted mb-2">Install BambooDigital for quick access from your home screen.</p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!deferredPrompt) return;
+                await (deferredPrompt as any).prompt();
+                const { outcome } = await (deferredPrompt as any).userChoice;
+                if (outcome === "accepted") {
+                  setDeferredPrompt(null);
+                }
+              }}
+              className="w-full bg-accent-green text-background py-2 font-bold hover:bg-foreground transition-colors"
+            >
+              INSTALL APP
+            </button>
+          </div>
+        ) : null
+      )}
     </div>
   );
 }
