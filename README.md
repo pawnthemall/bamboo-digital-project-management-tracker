@@ -49,11 +49,14 @@ npm install
 npx prisma migrate dev
 npx prisma db seed
 
+# Copy environment config (includes PORT for dev server)
+cp .env.example .env.local
+
 # Start dev server (with nodemon auto-restart)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and log in with the seeded admin credentials from `.env`.
+Open `http://localhost:${PORT}` (default `http://localhost:3010` if `PORT=3010` is set in `.env.local`) and log in with the seeded admin credentials from `.env.local`.
 
 ## Deployment (Plesk)
 
@@ -93,14 +96,20 @@ docs/
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+Copy `.env.example` to `.env.local` and configure:
 
 ```env
+PORT=3010
 DATABASE_URL="file:./prisma/dev.db"
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=yourpassword
 JWT_SECRET=your-jwt-secret
 ```
+
+- `PORT` — Dev server port (used by `scripts/dev.mjs` and production `start.js`)
+- `DATABASE_URL` — SQLite database file path
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — Seeded admin login credentials
+- `JWT_SECRET` — Secret key for signing JWT tokens
 
 ## Phase 2 Roadmap (Complete)
 

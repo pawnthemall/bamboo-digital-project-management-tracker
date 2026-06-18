@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
+  id           String          @id @default(cuid())
+  email        String          @unique
   passwordHash String
   name         String?
-  role         String      @default("MEMBER")
-  workHours    Int         @default(8)
-  timezone     String      @default("UTC")
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  role         String          @default("MEMBER")
+  workHours    Int             @default(8)
+  timezone     String          @default("UTC")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   timeEntries  TimeEntry[]
-  tasks        Task[]      @relation("AssignedTasks")
+  tasks        Task[]          @relation("AssignedTasks")
   memberships  ProjectMember[]
+  devices      TrustedDevice[]
 }
 
 model Project {
@@ -111,4 +112,20 @@ model ActivityLedger {
   durationSeconds Int?
   notes           String?
   metadata        String?
+}
+
+model TrustedDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName  String?
+  browser     String?
+  os          String?
+  ipAddress   String?
+  userAgent   String?
+  deviceToken String   @unique
+  lastUsedAt  DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
 }

@@ -80,5 +80,17 @@ export function useFormatDate() {
     });
   }
 
-  return { formatDate, formatDateTime, formatTime, locale, timezone };
+  function formatISODate(value: string | Date | null | undefined): string {
+    if (!value) return "";
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+
+  return { formatDate, formatDateTime, formatTime, formatISODate, locale, timezone };
 }

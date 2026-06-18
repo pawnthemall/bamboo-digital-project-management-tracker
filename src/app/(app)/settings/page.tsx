@@ -25,10 +25,52 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState(storeTimezone);
   const [exportLoading, setExportLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [devices, setDevices] = useState<Array<{
+    id: string;
+    deviceName: string | null;
+    browser: string | null;
+    os: string | null;
+    ipAddress: string | null;
+    lastUsedAt: string;
+    createdAt: string;
+  }>>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
     applyAccent(storeAccent);
   }, [storeAccent]);
+
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  async function fetchDevices() {
+    try {
+      const res = await fetch("/api/devices");
+      if (!res.ok) return;
+      const data = await res.json();
+      setDevices(data.devices || []);
+    } catch {
+      console.error("Failed to fetch devices");
+    } finally {
+      setDevicesLoading(false);
+    }
+  }
+
+  async function revokeDevice(id: string) {
+    setRevokingId(id);
+    try {
+      const res = await fetch(`/api/devices/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setDevices((prev) => prev.filter((d) => d.id !== id));
+      }
+    } catch {
+      console.error("Failed to revoke device");
+    } finally {
+      setRevokingId(null);
+    }
+  }
 
   function applyAccent(color: string) {
     const root = document.documentElement;
@@ -134,6 +176,49 @@ export default function SettingsPage() {
             <option>Europe/London</option>
           </select>
         </div>
+      </div>
+
+      <div className="border border-accent-green bg-surface p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-accent-green rounded-full animate-pulse" />
+          <h3 className="text-sm font-bold text-accent-green">Device Manager</h3>
+        </div>
+        <p className="text-xs text-muted">
+          Devices you have chosen to remember. Revoke any device to sign it out immediately.
+        </p>
+        {devicesLoading ? (
+          <p className="text-xs text-muted">Loading devices...</p>
+        ) : devices.length === 0 ? (
+          <p className="text-xs text-muted">No remembered devices.</p>
+        ) : (
+          <div className="space-y-2">
+            {devices.map((device) => (
+              <div
+                key={device.id}
+                className="border border-border bg-background p-3 flex items-center justify-between"
+              >
+                <div className="space-y-0.5">
+                  <p className="text-xs text-foreground font-bold">
+                    {device.deviceName || "Unknown Device"}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {device.browser} · {device.os} · {device.ipAddress}
+                  </p>
+                  <p className="text-xs text-muted">
+                    Last used: {new Date(device.lastUsedAt).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => revokeDevice(device.id)}
+                  disabled={revokingId === device.id}
+                  className="border border-accent-red text-accent-red px-3 py-1 text-xs font-bold hover:bg-accent-red hover:text-background transition-colors disabled:opacity-50"
+                >
+                  {revokingId === device.id ? "REVOKING..." : "REVOKE"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="border border-border bg-surface p-4 space-y-4">

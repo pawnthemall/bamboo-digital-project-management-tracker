@@ -26,6 +26,8 @@ export default function DashboardPage() {
   const timer = useTaskTimer();
   const { formatDate, formatDateTime } = useFormatDate();
 
+  const chartDateFormatter = (v: string) => formatDate(v, { month: "2-digit", day: "2-digit" });
+
   if (isLoading) return <div className="text-muted text-sm">Loading dashboard...</div>;
   if (!data) return <div className="text-muted text-sm">No data</div>;
 
@@ -132,7 +134,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={analytics.dailyHours}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={chartDateFormatter} />
                 <YAxis tick={{ fill: "#888", fontSize: 10 }} />
                 <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
                 <Line type="monotone" dataKey="hours" stroke="#00ff66" strokeWidth={2} dot={false} />
@@ -145,7 +147,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={analytics.velocity}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={chartDateFormatter} />
                 <YAxis tick={{ fill: "#888", fontSize: 10 }} />
                 <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
                 <Bar dataKey="estimated" fill="#333" />
@@ -159,7 +161,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={analytics.completionRate}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={chartDateFormatter} />
                 <YAxis tick={{ fill: "#888", fontSize: 10 }} domain={[0, 100]} />
                 <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} formatter={(v: any) => `${v}%`} />
                 <Area type="monotone" dataKey="rate" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />

@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -40,7 +41,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await res.json();
@@ -60,9 +61,23 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm">
+      <style>{`
+        @keyframes crt-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        .crt-cursor {
+          animation: crt-blink 1.06s step-end infinite;
+        }
+        .crt-input-caret {
+          caret-color: var(--color-accent-green, #00ff66);
+        }
+      `}</style>
       <div className="flex items-center gap-2 mb-2">
         <img src="/bd-icon.svg" alt="" width={28} height={28} />
-        <h1 className="text-2xl font-bold text-foreground text-glow">BambooDigital</h1>
+        <h1 className="text-2xl font-bold text-foreground text-glow">
+          BambooDigital<span className="inline-block w-2.5 h-5 bg-accent-green ml-0.5 crt-cursor" />
+        </h1>
       </div>
       <p className="text-muted mb-6">Project Management Tracker v0.1.0</p>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,7 +92,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none"
+            className="crt-input-caret w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none"
             placeholder="user@example.com"
             required
           />
@@ -89,7 +104,7 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none pr-10"
+              className="crt-input-caret w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none pr-10"
               placeholder="••••••••"
               required
             />
@@ -114,6 +129,15 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-4 h-4 accent-accent-green"
+          />
+          <span className="text-xs text-muted">Remember this device for 30 days</span>
+        </label>
         <button
           type="submit"
           disabled={loading}

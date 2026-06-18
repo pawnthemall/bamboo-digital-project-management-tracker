@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useReports } from "@/hooks/useReports";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useFormatDate } from "@/lib/dateFormat";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 
@@ -55,8 +56,9 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("weekly");
   const { data, isLoading } = useReports(activeTab) as { data: ReportData | undefined; isLoading: boolean };
   const { data: analytics } = useAnalytics(30);
+  const { formatDate, formatISODate } = useFormatDate();
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => formatISODate(new Date()), [formatISODate]);
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
 
@@ -83,7 +85,7 @@ export default function ReportsPage() {
     const summaryWs = XLSX.utils.aoa_to_sheet([
       ["Metric", "Value"],
       ["Period", data.period],
-      ["Date Range", `${data.startDate} to ${data.endDate}`],
+      ["Date Range", `${formatDate(data.startDate)} to ${formatDate(data.endDate)}`],
       ["Est. Hours", data.summary.totalEstimated],
       ["Actual Hours", data.summary.totalActual],
       ["Productivity %", data.summary.productivity],
@@ -188,7 +190,7 @@ export default function ReportsPage() {
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={analytics.dailyHours}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+              <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => formatDate(v, { month: "2-digit", day: "2-digit" })} />
               <YAxis tick={{ fill: "#888", fontSize: 10 }} />
               <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
               <Line type="monotone" dataKey="hours" stroke="#00ff66" strokeWidth={2} dot={false} />
