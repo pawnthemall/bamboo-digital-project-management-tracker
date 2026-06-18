@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useReports } from "@/hooks/useReports";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import * as XLSX from "xlsx";
 
 interface ReportData {
   period: string;
@@ -49,25 +53,12 @@ function statusBadge(status: string) {
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("weekly");
-  const [data, setData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useReports(activeTab) as { data: ReportData | undefined; isLoading: boolean };
+  const { data: analytics } = useAnalytics(30);
 
-  useEffect(() => {
-    async function fetchReport() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/reports?period=${activeTab}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        setData(json);
-      } catch (e) {
-        console.error("Failed to fetch report", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchReport();
-  }, [activeTab]);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
 
   function exportCSV() {
     if (!data) return;
@@ -80,17 +71,48 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `report-${data.period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `report-${data.period}-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div className="text-muted text-sm">Loading report...</div>;
+  function exportExcel() {
+    if (!data) return;
+    const wb = XLSX.utils.book_new();
+
+    const summaryWs = XLSX.utils.aoa_to_sheet([
+      ["Metric", "Value"],
+      ["Period", data.period],
+      ["Date Range", `${data.startDate} to ${data.endDate}`],
+      ["Est. Hours", data.summary.totalEstimated],
+      ["Actual Hours", data.summary.totalActual],
+      ["Productivity %", data.summary.productivity],
+      ["Tasks", data.summary.taskCount],
+      ["Completed", data.summary.completedTasks],
+    ]);
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+
+    const projectWs = XLSX.utils.aoa_to_sheet([
+      ["Project", "Est. Hours", "Actual Hours", "Tasks", "Completed"],
+      ...data.projectSummary.map((p) => [p.name, p.estimatedHours, p.actualHours, p.taskCount, p.completedTasks]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, projectWs, "Projects");
+
+    const taskWs = XLSX.utils.aoa_to_sheet([
+      ["Title", "Status", "Project", "Est. Hours", "Actual Hours"],
+      ...data.tasks.map((t) => [t.title, t.status, t.projectName, t.estimatedHours, t.actualHours]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, taskWs, "Tasks");
+
+    XLSX.writeFile(wb, `report-${data.period}-${today}.xlsx`);
+  }
+
+  if (isLoading) return <div className="text-muted text-sm">Loading report...</div>;
   if (!data) return <div className="text-muted text-sm">No data</div>;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
         <div className="flex border-b border-border">
           {TABS.map((tab) => (
             <button
@@ -106,12 +128,33 @@ export default function ReportsPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={exportCSV}
-          className="border border-border px-3 py-1 text-xs text-foreground hover:bg-surface-hover transition-colors"
-        >
-          EXPORT CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="bg-background border border-border text-xs text-foreground px-2 py-1"
+          />
+          <span className="text-xs text-muted">to</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="bg-background border border-border text-xs text-foreground px-2 py-1"
+          />
+          <button
+            onClick={exportCSV}
+            className="border border-border px-3 py-1 text-xs text-foreground hover:bg-surface-hover transition-colors"
+          >
+            CSV
+          </button>
+          <button
+            onClick={exportExcel}
+            className="bg-accent-green text-background px-3 py-1 text-xs font-bold hover:bg-foreground transition-colors"
+          >
+            EXCEL
+          </button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -137,6 +180,22 @@ export default function ReportsPage() {
           <p className="text-xl font-bold text-accent-green mt-1">{data.summary.completedTasks}</p>
         </div>
       </div>
+
+      {/* Productivity Trend */}
+      {analytics && analytics.dailyHours.length > 0 && (
+        <div className="border border-border bg-surface p-4 mb-6">
+          <h3 className="text-xs text-muted uppercase mb-3">Productivity Trend (30 days)</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={analytics.dailyHours}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+              <YAxis tick={{ fill: "#888", fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
+              <Line type="monotone" dataKey="hours" stroke="#00ff66" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Project breakdown */}
       <div className="border border-border bg-surface p-4 mb-6">

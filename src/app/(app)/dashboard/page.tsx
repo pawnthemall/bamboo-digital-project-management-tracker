@@ -1,27 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useTaskTimer } from "@/hooks/useTaskTimer";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-interface DashboardData {
-  stats: {
-    totalHours: string;
-    activeProjects: number;
-    totalTasks: number;
-    completedTasks: number;
-    completedToday: number;
-    completedThisWeek: number;
-  };
-  upcomingTasks: Array<{ id: string; title: string; description: string | null; dueDate: string | null; project: { name: string } }>;
-  recentlyCompleted: Array<{ id: string; title: string; description: string | null; project: { name: string } }>;
-  activityFeed: Array<{ id: string; eventType: string; timestamp: string; notes: string | null }>;
-  charts: {
-    timeByProject: Array<{ name: string; hours: number }>;
-    timeByCategory: Array<{ name: string; hours: number }>;
-    burnDown: Array<{ name: string; estimated: number; actual: number; remaining: number }>;
-  };
-}
+import { useDashboard } from "@/hooks/useDashboard";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { useFormatDate } from "@/lib/dateFormat";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from "recharts";
 
 const CHART_COLORS = ["#00ff66", "#8b5cf6", "#ef4444", "#f97316", "#3b82f6", "#06b6d4"];
 
@@ -38,27 +21,12 @@ function eventIcon(type: string) {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useDashboard();
+  const { data: analytics } = useAnalytics(30);
   const timer = useTaskTimer();
+  const { formatDate, formatDateTime } = useFormatDate();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch("/api/dashboard");
-        if (!res.ok) return;
-        const json = await res.json();
-        setData(json);
-      } catch (e) {
-        console.error("Failed to fetch dashboard", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  if (loading) return <div className="text-muted text-sm">Loading dashboard...</div>;
+  if (isLoading) return <div className="text-muted text-sm">Loading dashboard...</div>;
   if (!data) return <div className="text-muted text-sm">No data</div>;
 
   const stats = [
@@ -156,6 +124,51 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Analytics Row */}
+      {analytics && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="border border-border bg-surface p-4">
+            <h3 className="text-xs text-muted uppercase mb-3">Productivity Trend (30d)</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={analytics.dailyHours}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="date" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <YAxis tick={{ fill: "#888", fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
+                <Line type="monotone" dataKey="hours" stroke="#00ff66" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="border border-border bg-surface p-4">
+            <h3 className="text-xs text-muted uppercase mb-3">Velocity (Est vs Actual)</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={analytics.velocity}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <YAxis tick={{ fill: "#888", fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} />
+                <Bar dataKey="estimated" fill="#333" />
+                <Bar dataKey="actual" fill="#00ff66" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="border border-border bg-surface p-4">
+            <h3 className="text-xs text-muted uppercase mb-3">Completion Rate</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={analytics.completionRate}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
+                <YAxis tick={{ fill: "#888", fontSize: 10 }} domain={[0, 100]} />
+                <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} formatter={(v: any) => `${v}%`} />
+                <Area type="monotone" dataKey="rate" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Row: Activity + Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Feed */}
@@ -169,7 +182,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-foreground">{event.eventType}</p>
                   {event.notes && <p className="text-xs text-muted">{event.notes}</p>}
                   <p className="text-xs text-muted mt-0.5">
-                    {new Date(event.timestamp).toLocaleTimeString()}
+                    {formatDateTime(event.timestamp)}
                   </p>
                 </div>
               </div>
@@ -189,7 +202,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground font-bold">{task.title}</span>
                     <span className="text-xs text-accent-orange">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No date"}
+                      {task.dueDate ? formatDate(task.dueDate) : "No date"}
                     </span>
                   </div>
                   <p className="text-xs text-muted">{task.project.name}</p>

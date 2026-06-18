@@ -1,12 +1,13 @@
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useProjects } from "@/hooks/useProjects";
 import ProjectCard from "@/components/ProjectCard";
 import Link from "next/link";
 
-export default async function ProjectsPage() {
-  const projects = await prisma.project.findMany({
-    include: { tasks: true },
-    orderBy: { createdAt: "desc" },
-  });
+export default function ProjectsPage() {
+  const { data: projects, isLoading } = useProjects();
+
+  if (isLoading) return <div className="text-muted text-sm">Loading projects...</div>;
 
   return (
     <div>
@@ -19,7 +20,7 @@ export default async function ProjectsPage() {
         </Link>
       </div>
 
-      {projects.length === 0 ? (
+      {!projects || projects.length === 0 ? (
         <div className="border border-dashed border-border p-12 text-center">
           <p className="text-muted">No projects yet. Create your first project to get started.</p>
         </div>

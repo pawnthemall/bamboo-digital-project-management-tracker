@@ -8,6 +8,7 @@ export async function GET() {
       include: { tasks: true },
       orderBy: { createdAt: "desc" },
     });
+
     return NextResponse.json({ projects });
   } catch (error) {
     console.error("GET /api/projects error:", error);

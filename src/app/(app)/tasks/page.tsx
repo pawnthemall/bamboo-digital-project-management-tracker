@@ -1,54 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useTasks } from "@/hooks/useTasks";
 import TaskCard from "@/components/TaskCard";
-
-interface TaskData {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  category: string | null;
-  actualDuration: number;
-  project: { id: string; name: string };
-  checklistItems: { id: string; isCompleted: boolean }[];
-  timeEntries: { id: string; startTime: string; endTime: string | null; pausedSeconds: number }[];
-}
 
 const STATUS_OPTIONS = ["ALL", "TODO", "IN_PROGRESS", "REVIEW", "COMPLETED"];
 const PRIORITY_OPTIONS = ["ALL", "LOW", "MEDIUM", "HIGH", "URGENT"];
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<TaskData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tasks, isLoading } = useTasks();
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
 
-  useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const res = await fetch("/api/tasks");
-        if (!res.ok) return;
-        const data = await res.json();
-        setTasks(data.tasks);
-      } catch (e) {
-        console.error("Failed to fetch tasks", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTasks();
-  }, []);
-
-  const filtered = tasks.filter((t) => {
+  const filtered = (tasks || []).filter((t) => {
     if (statusFilter !== "ALL" && t.status !== statusFilter) return false;
     if (priorityFilter !== "ALL" && t.priority !== priorityFilter) return false;
     return true;
   });
 
-  if (loading) return <div className="text-muted text-sm">Loading tasks...</div>;
+  if (isLoading) return <div className="text-muted text-sm">Loading tasks...</div>;
 
   return (
     <div>

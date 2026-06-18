@@ -1,18 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-
-interface Task {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  project: { name: string; color: string };
-}
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { useTasks, useUpdateTask } from "@/hooks/useTasks";
 
 const COLUMNS = [
   { key: "TODO", label: "Backlog" },
+  { key: "PLANNED", label: "Planned" },
   { key: "IN_PROGRESS", label: "In Progress" },
   { key: "REVIEW", label: "Review" },
   { key: "COMPLETED", label: "Completed" },
@@ -28,61 +23,76 @@ function priorityDot(priority: string) {
 }
 
 export default function RoadmapPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tasks, isLoading } = useTasks();
+  const updateTask = useUpdateTask();
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const res = await fetch("/api/tasks");
-        if (!res.ok) return;
-        const data = await res.json();
-        setTasks(data.tasks);
-      } catch (e) {
-        console.error("Failed to fetch tasks", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTasks();
-  }, []);
+  const onDragEnd = useCallback(
+    (result: DropResult) => {
+      setDraggingId(null);
+      if (!result.destination) return;
+      const sourceStatus = result.source.droppableId;
+      const destStatus = result.destination.droppableId;
+      if (sourceStatus === destStatus) return;
 
-  if (loading) return <div className="text-muted text-sm">Loading...</div>;
+      const taskId = result.draggableId;
+      updateTask.mutate({ id: taskId, body: { status: destStatus } });
+    },
+    [updateTask]
+  );
+
+  if (isLoading) return <div className="text-muted text-sm">Loading...</div>;
 
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <DragDropContext onDragEnd={onDragEnd} onDragStart={(start) => setDraggingId(start.draggableId)}>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {COLUMNS.map((col) => {
-          const colTasks = tasks.filter((t) => t.status === col.key);
+          const colTasks = (tasks || []).filter((t) => t.status === col.key);
           return (
-            <div key={col.key} className="border border-border bg-surface p-3 min-h-[200px]">
-              <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
-                <h3 className="text-sm font-bold text-foreground">{col.label}</h3>
-                <span className="text-xs text-muted">{colTasks.length}</span>
-              </div>
-              <div className="space-y-2">
-                {colTasks.map((task) => (
-                  <Link key={task.id} href={`/tasks/${task.id}`}>
-                    <div className="border border-border bg-background p-2 hover:border-accent-green transition-colors">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs ${priorityDot(task.priority)}`}>●</span>
-                        <span className="text-xs text-foreground font-bold truncate">{task.title}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block w-2 h-2"
-                          style={{ backgroundColor: task.project.color }}
-                        />
-                        <span className="text-xs text-muted truncate">{task.project.name}</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+            <Droppable droppableId={col.key} key={col.key}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`border border-border bg-surface p-3 min-h-[200px] transition-colors ${snapshot.isDraggingOver ? "border-accent-green bg-surface-hover" : ""}`}
+                >
+                  <div className="flex items-center justify-between border-b border-border pb-2 mb-2">
+                    <h3 className="text-sm font-bold text-foreground">{col.label}</h3>
+                    <span className="text-xs text-muted">{colTasks.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {colTasks.map((task, index) => (
+                      <Draggable draggableId={task.id} index={index} key={task.id}>
+                        {(providedDraggable, draggableSnapshot) => (
+                          <Link href={`/tasks/${task.id}`}>
+                            <div
+                              ref={providedDraggable.innerRef}
+                              {...providedDraggable.draggableProps}
+                              {...providedDraggable.dragHandleProps}
+                              className={`border bg-background p-2 transition-colors ${draggableSnapshot.isDragging ? "border-accent-green shadow-lg" : "border-border hover:border-accent-green"}`}
+                              style={providedDraggable.draggableProps.style as React.CSSProperties}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-xs ${priorityDot(task.priority)}`}>●</span>
+                                <span className="text-xs text-foreground font-bold truncate">{task.title}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="inline-block w-2 h-2" style={{ backgroundColor: task.project.color }} />
+                                <span className="text-xs text-muted truncate">{task.project.name}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                </div>
+              )}
+            </Droppable>
           );
         })}
       </div>
-    </div>
+    </DragDropContext>
   );
 }

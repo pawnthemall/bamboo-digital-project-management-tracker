@@ -1,4 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
+import { prisma } from "./prisma";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "bamboo-digital-secret-key-change-in-production"
@@ -19,4 +21,20 @@ export async function verifyToken(token: string) {
   } catch {
     return null;
   }
+}
+
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  if (!token) return null;
+
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { id: true, email: true, role: true, name: true },
+  });
+
+  return user;
 }

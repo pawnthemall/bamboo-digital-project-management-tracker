@@ -1,54 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAppStore } from "@/stores/appStore";
 
 const COLORS = [
-  { label: "Green", value: "#00ff66", var: "--color-accent-green" },
-  { label: "Purple", value: "#8b5cf6", var: "--color-accent-purple" },
-  { label: "Red", value: "#ef4444", var: "--color-accent-red" },
-  { label: "Orange", value: "#f97316", var: "--color-accent-orange" },
-  { label: "Blue", value: "#3b82f6", var: "--color-accent-blue" },
-  { label: "Cyan", value: "#06b6d4", var: "--color-accent-cyan" },
-];
-
-const ACCENT_CSS_VARS = [
-  "--color-accent-green",
-  "--color-accent-purple",
-  "--color-accent-red",
-  "--color-accent-orange",
-  "--color-accent-blue",
-  "--color-accent-cyan",
+  { label: "Green", value: "#00ff66" },
+  { label: "Purple", value: "#8b5cf6" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Orange", value: "#f97316" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Cyan", value: "#06b6d4" },
 ];
 
 export default function SettingsPage() {
-  const [accentColor, setAccentColor] = useState("#00ff66");
-  const [workHours, setWorkHours] = useState("8");
-  const [timezone, setTimezone] = useState("UTC");
+  const storeAccent = useAppStore((s) => s.accentColor);
+  const storeWorkHours = useAppStore((s) => s.workHours);
+  const storeTimezone = useAppStore((s) => s.timezone);
+  const setStoreAccent = useAppStore((s) => s.setAccentColor);
+  const setStoreWorkHours = useAppStore((s) => s.setWorkHours);
+  const setStoreTimezone = useAppStore((s) => s.setTimezone);
+
+  const [accentColor, setAccentColor] = useState(storeAccent);
+  const [workHours, setWorkHours] = useState(storeWorkHours);
+  const [timezone, setTimezone] = useState(storeTimezone);
   const [exportLoading, setExportLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("bd-settings");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.accentColor) {
-          setAccentColor(parsed.accentColor);
-          applyAccent(parsed.accentColor);
-        }
-        if (parsed.workHours) setWorkHours(parsed.workHours);
-        if (parsed.timezone) setTimezone(parsed.timezone);
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
+    applyAccent(storeAccent);
+  }, [storeAccent]);
 
   function applyAccent(color: string) {
     const root = document.documentElement;
     root.style.setProperty("--color-accent-green", color);
-
-    // Inject override style for Tailwind v4 compiled utilities
     let style = document.getElementById("bd-accent-override") as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -72,8 +56,9 @@ export default function SettingsPage() {
   }
 
   function handleSave() {
-    console.log("[Settings] Save clicked, color:", accentColor);
-    localStorage.setItem("bd-settings", JSON.stringify({ accentColor, workHours, timezone }));
+    setStoreAccent(accentColor);
+    setStoreWorkHours(workHours);
+    setStoreTimezone(timezone);
     applyAccent(accentColor);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

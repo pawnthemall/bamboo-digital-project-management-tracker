@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     const response = NextResponse.json({
-      user: { id: user.id, email: user.email, workHours: user.workHours, timezone: user.timezone },
+      user: { id: user.id, email: user.email, role: user.role, workHours: user.workHours, timezone: user.timezone },
     });
 
     response.cookies.set("token", token, {

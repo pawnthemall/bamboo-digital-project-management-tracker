@@ -1,10 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import type { Project, Task } from "@prisma/client";
+
+interface TaskLite {
+  id: string;
+  status: string;
+}
+
+interface ProjectLite {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  color: string;
+  estimatedHours: number;
+  actualHours: number;
+  remainingHours: number;
+  tasks: TaskLite[];
+}
 
 interface ProjectCardProps {
-  project: Project & { tasks: Task[] };
+  project: ProjectLite;
 }
 
 function statusBadge(status: string) {

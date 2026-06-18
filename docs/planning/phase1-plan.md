@@ -392,4 +392,4 @@ Planned Phase 2 features:
 
 ## Next Step
 
-**Phase 2** — Prioritized features: drag-and-drop Kanban, calendar view, productivity trend charts, Excel/PDF export, notifications, multi-user support.
+**Phase 2** — Prioritized features: drag-and-drop Kanban, calendar view, productivity trend charts, Excel/PDF export, notifications, multi-user support, PWA (service worker, offline support, installability).

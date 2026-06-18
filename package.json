@@ -13,18 +13,23 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@prisma/client": "^6.19.3",
     "@tanstack/react-query": "^5.101.0",
     "argon2": "^0.44.0",
     "better-sqlite3": "^12.11.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.4.0",
     "dayjs": "^1.11.21",
     "framer-motion": "^12.40.0",
     "jose": "^6.2.3",
     "next": "16.2.9",
     "react": "19.2.4",
+    "react-big-calendar": "^1.20.0",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.79.0",
     "recharts": "^3.8.1",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },

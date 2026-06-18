@@ -10,7 +10,7 @@ export async function GET(
     const { id } = await params;
     const project = await prisma.project.findUnique({
       where: { id },
-      include: { tasks: { include: { checklistItems: true } } },
+      include: { tasks: { include: { checklistItems: true }, orderBy: { createdAt: "desc" } } },
     });
 
     if (!project) {

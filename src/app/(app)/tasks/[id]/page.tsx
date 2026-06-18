@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTaskTimer } from "@/hooks/useTaskTimer";
+import { useFormatDate } from "@/lib/dateFormat";
 
 interface TaskData {
   id: string;
@@ -13,6 +14,8 @@ interface TaskData {
   category: string | null;
   estimatedDuration: number;
   actualDuration: number;
+  startDate: string | null;
+  dueDate: string | null;
   projectId: string;
   project: { id: string; name: string };
   checklistItems: { id: string; title: string; isCompleted: boolean; order: number }[];
@@ -46,6 +49,7 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const timer = useTaskTimer();
+  const { formatDate } = useFormatDate();
 
   useEffect(() => {
     async function fetchTask() {
@@ -152,7 +156,7 @@ export default function TaskDetailPage() {
         <p className="text-xs text-muted mb-4">{task.description}</p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="border border-border bg-surface p-4">
           <p className="text-xs text-muted uppercase">Project</p>
           <p className="text-lg font-bold text-foreground mt-1">{task.project.name}</p>
@@ -164,6 +168,14 @@ export default function TaskDetailPage() {
         <div className="border border-border bg-surface p-4">
           <p className="text-xs text-muted uppercase">Checklist</p>
           <p className="text-lg font-bold text-foreground mt-1">{checklistDone}/{checklistTotal}</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="text-xs text-muted uppercase">Start</p>
+          <p className="text-lg font-bold text-foreground mt-1">{formatDate(task.startDate)}</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="text-xs text-muted uppercase">Due</p>
+          <p className="text-lg font-bold text-foreground mt-1">{formatDate(task.dueDate)}</p>
         </div>
       </div>
 

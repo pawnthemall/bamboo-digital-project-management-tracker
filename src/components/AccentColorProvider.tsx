@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useAppStore } from "@/stores/appStore";
 
 function injectAccent(color: string) {
   document.documentElement.style.setProperty("--color-accent-green", color);
@@ -27,19 +28,11 @@ function injectAccent(color: string) {
 }
 
 export default function AccentColorProvider() {
+  const accentColor = useAppStore((s) => s.accentColor);
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("bd-settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.accentColor) {
-          injectAccent(parsed.accentColor);
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+    injectAccent(accentColor);
+  }, [accentColor]);
 
   return null;
 }

@@ -8,13 +8,18 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String      @id @default(cuid())
+  email        String      @unique
   passwordHash String
-  workHours    Int      @default(8)
-  timezone     String   @default("UTC")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  name         String?
+  role         String      @default("MEMBER")
+  workHours    Int         @default(8)
+  timezone     String      @default("UTC")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  timeEntries  TimeEntry[]
+  tasks        Task[]      @relation("AssignedTasks")
+  memberships  ProjectMember[]
 }
 
 model Project {
@@ -31,6 +36,19 @@ model Project {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   tasks          Task[]
+  members        ProjectMember[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
 }
 
 model Task {
@@ -39,6 +57,8 @@ model Task {
   description       String?
   projectId         String
   project           Project        @relation(fields: [projectId], references: [id])
+  assigneeId        String?
+  assignee          User?          @relation("AssignedTasks", fields: [assigneeId], references: [id])
   category          String?
   priority          String         @default("MEDIUM")
   status            String         @default("TODO")
@@ -57,6 +77,8 @@ model TimeEntry {
   id            String    @id @default(cuid())
   taskId        String
   task          Task      @relation(fields: [taskId], references: [id])
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
   startTime     DateTime  @default(now())
   endTime       DateTime?
   pausedSeconds Int       @default(0)
