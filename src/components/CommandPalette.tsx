@@ -10,7 +10,7 @@ const PAGES = [
   { name: "Dashboard", path: "/dashboard", icon: "◈" },
   { name: "Projects", path: "/projects", icon: "★" },
   { name: "Tasks", path: "/tasks", icon: "▪" },
-  { name: "Roadmap", path: "/roadmap", icon: "▤" },
+  { name: "Board", path: "/board", icon: "▤" },
   { name: "Timeline", path: "/timeline", icon: "→" },
   { name: "Reports", path: "/reports", icon: "📊" },
   { name: "Settings", path: "/settings", icon: "⚙" },

@@ -12,7 +12,7 @@ Build a desktop-first, dark-mode CRT terminal themed project management tracker 
 - ✅ Configure custom colors: matrix green (`#00ff66`), purple, red, orange, blue, cyan; zero border-radius globally via `@theme inline`
 - ✅ Global dark-mode styles: scanline overlay, blinking cursor utility, monospace font stack, CRT glow effects (`text-glow`, `border-glow`)
 - ✅ Install core dependencies: `framer-motion`, `zustand`, `@tanstack/react-query`, `recharts`, `react-hook-form`, `zod`, `dayjs`, `@prisma/client`, `prisma`, `argon2`
-- ✅ Create root layout with sidebar navigation: Dashboard, Projects, Roadmap, Timeline, Tasks, Reports, Calendar, Settings
+- ✅ Create root layout with sidebar navigation: Dashboard, Projects, Board, Timeline, Tasks, Reports, Calendar, Settings
 - ✅ Build `Sidebar` component with active-state styling and route links
 - ✅ Create placeholder pages for all 8 routes with CRT styling
 - ✅ Create login page with CRT styling (in `(auth)` group)
@@ -200,9 +200,9 @@ Build a desktop-first, dark-mode CRT terminal themed project management tracker 
 
 **Goal:** Tie everything together and prepare for Phase 2.
 
-- ✅ Sidebar links wired to all functional pages (Dashboard, Projects, Tasks, Roadmap, Timeline, Reports, Settings)
+- ✅ Sidebar links wired to all functional pages (Dashboard, Projects, Tasks, Board, Timeline, Reports, Settings)
 - ✅ All CRUD operations write to ActivityLedger via `lib/ledger.ts` (projects, tasks, timer, checklist)
-- ✅ `RoadmapPage`: 4-column Kanban board (Backlog, In Progress, Review, Completed) with real tasks, priority dots, project colors
+- ✅ `BoardPage`: 4-column Kanban board (Backlog, In Progress, Review, Completed) with real tasks, priority dots, project colors
 - ✅ `TimelinePage`: task list sorted by due date with start/due dates and project colors
 - ✅ `CalendarPage`: placeholder (route exists)
 - ✅ End-to-end walkthrough works: login → create project → create task → start timer → complete task → view dashboard → view reports
@@ -323,7 +323,7 @@ src/
       projects/
       tasks/
       reports/
-      roadmap/
+      board/
       timeline/
       calendar/
       settings/

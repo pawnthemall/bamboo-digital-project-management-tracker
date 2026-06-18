@@ -22,7 +22,7 @@ A desktop-first, dark-mode CRT terminal themed project management tracker built 
 - **Timer:** Interactive start/pause/resume/stop/complete timer with localStorage persistence
 - **Dashboard:** Real-time stats, Recharts burn-down/pie/bar charts, activity feed, upcoming tasks
 - **Reports:** Daily/weekly/monthly reports with project breakdown tables and CSV export
-- **Roadmap:** Kanban board with drag-and-drop columns
+- **Board:** Kanban board with drag-and-drop columns
 - **Timeline:** Task list sorted by due date
 - **Settings:** Accent color picker, work hours, timezone, JSON data export
 
