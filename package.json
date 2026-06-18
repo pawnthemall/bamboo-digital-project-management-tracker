@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon --watch src --watch prisma --ext ts,tsx,js,jsx,css,prisma --exec \"next dev\" --signal SIGTERM",
+    "dev": "nodemon --watch src --watch prisma --ext ts,tsx,js,jsx,css,prisma --exec \"node scripts/dev.mjs\" --signal SIGTERM",
     "build": "next build",
     "start": "node start.js",
     "start:prod": "NODE_ENV=production node start.js",
