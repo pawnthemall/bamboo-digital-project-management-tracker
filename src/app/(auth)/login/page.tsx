@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -10,6 +10,24 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => {
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+    });
+    if ((window.navigator as { standalone?: boolean }).standalone) {
+      setIsInstalled(true);
+    }
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -105,17 +123,27 @@ export default function LoginPage() {
       <p className="mt-4 text-xs text-muted">
         Enter your credentials to continue.
       </p>
-      <div className="mt-4 border border-border bg-surface p-3">
-        <p className="text-xs text-muted font-bold uppercase mb-1">Install as App</p>
-        <p className="text-xs text-muted">
-          You can install BambooDigital as a PWA on your device for quick access:
-        </p>
-        <ul className="mt-1 text-xs text-muted list-disc list-inside space-y-0.5">
-          <li><strong>Chrome / Edge:</strong> Click the icon in the address bar (or menu {'>'} Install)</li>
-          <li><strong>Safari (iOS):</strong> Share {'>'} Add to Home Screen</li>
-          <li><strong>Safari (macOS):</strong> File {'>'} Add to Dock</li>
-        </ul>
-      </div>
+      {isInstalled ? (
+        <p className="mt-4 text-xs text-accent-green">App is installed. Enjoy!</p>
+      ) : deferredPrompt ? (
+        <div className="mt-4 border border-border bg-surface p-3">
+          <p className="text-xs text-muted mb-2">Install BambooDigital for quick access from your home screen.</p>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!deferredPrompt) return;
+              await (deferredPrompt as any).prompt();
+              const { outcome } = await (deferredPrompt as any).userChoice;
+              if (outcome === "accepted") {
+                setDeferredPrompt(null);
+              }
+            }}
+            className="w-full bg-accent-green text-background py-2 font-bold hover:bg-foreground transition-colors"
+          >
+            INSTALL APP
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
