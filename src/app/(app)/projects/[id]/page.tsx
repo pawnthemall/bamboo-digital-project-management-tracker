@@ -760,7 +760,31 @@ export default function ProjectDetailPage() {
                       <p className="text-xs text-muted">{m.user.email}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted uppercase">{m.role}</span>
+                      <select
+                        value={m.role}
+                        onChange={async (e) => {
+                          const newRole = e.target.value;
+                          try {
+                            const res = await fetch(`/api/projects/${projectId}/members`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ userId: m.userId, role: newRole }),
+                            });
+                            if (res.ok) {
+                              fetchMembers();
+                            } else {
+                              const data = await res.json();
+                              alert(data.error || "Failed to update role");
+                            }
+                          } catch {
+                            alert("Network error");
+                          }
+                        }}
+                        className="bg-background border border-border px-2 py-1 text-xs text-foreground focus:border-accent-green focus:outline-none"
+                      >
+                        <option value="MEMBER">MEMBER</option>
+                        <option value="MANAGER">MANAGER</option>
+                      </select>
                       <button
                         onClick={async () => {
                           if (!confirm("Remove this member?")) return;

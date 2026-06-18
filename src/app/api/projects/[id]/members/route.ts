@@ -83,3 +83,42 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: projectId } = await params;
+    const { userId, role } = await req.json();
+    if (!userId || !role) {
+      return NextResponse.json({ error: "userId and role required" }, { status: 400 });
+    }
+
+    const isAdmin = currentUser.role === "ADMIN";
+    const membership = await prisma.projectMember.findFirst({
+      where: { projectId, userId: currentUser.id },
+    });
+    const isManager = membership?.role === "MANAGER";
+
+    if (!isAdmin && !isManager) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const updated = await prisma.projectMember.updateMany({
+      where: { projectId, userId },
+      data: { role },
+    });
+
+    if (updated.count === 0) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("PATCH /api/projects/[id]/members error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
