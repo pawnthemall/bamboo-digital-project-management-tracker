@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #0a0f0a;
+  --color-foreground: #00ff66;
+  --color-surface: #0d1a0d;
+  --color-surface-hover: #112211;
+  --color-border: #1a331a;
+  --color-muted: #3d5c3d;
+  --color-accent-green: #00ff66;
+  --color-accent-purple: #a855f7;
+  --color-accent-red: #ef4444;
+  --color-accent-orange: #f97316;
+  --color-accent-blue: #3b82f6;
+  --color-accent-cyan: #06b6d4;
+  --font-sans: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  --radius: 0px;
+}
+
+html {
+  background: #0a0f0a;
+  color: #00ff66;
+}
+
+body {
+  background: #0a0f0a;
+  color: #00ff66;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* CRT Scanline Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 1px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0) 3px
+  );
+}
+
+/* Blinking Cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: "█";
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0f0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a331a;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff66;
+}
+
+/* Selection */
+::selection {
+  background: #00ff66;
+  color: #0a0f0a;
+}
+
+/* Focus rings */
+*:focus-visible {
+  outline: 2px solid #00ff66;
+  outline-offset: 2px;
+}
+
+/* Accent utilities */
+.text-glow {
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+.border-glow {
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.15);
+}
+

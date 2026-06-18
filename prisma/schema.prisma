@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  workHours    Int      @default(8)
+  timezone     String   @default("UTC")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  status         String   @default("ACTIVE")
+  color          String   @default("#00ff66")
+  startDate      DateTime?
+  targetDate     DateTime?
+  estimatedHours Float    @default(0)
+  actualHours    Float    @default(0)
+  remainingHours Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tasks          Task[]
+}
+
+model Task {
+  id                String         @id @default(cuid())
+  title             String
+  description       String?
+  projectId         String
+  project           Project        @relation(fields: [projectId], references: [id])
+  category          String?
+  priority          String         @default("MEDIUM")
+  status            String         @default("TODO")
+  tags              String?
+  estimatedDuration Int            @default(0)
+  actualDuration    Int            @default(0)
+  startDate         DateTime?
+  dueDate           DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  timeEntries       TimeEntry[]
+  checklistItems    ChecklistItem[]
+}
+
+model TimeEntry {
+  id            String    @id @default(cuid())
+  taskId        String
+  task          Task      @relation(fields: [taskId], references: [id])
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  pausedSeconds Int       @default(0)
+  isRunning     Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  title       String
+  isCompleted Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLedger {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  eventType       String
+  entityType      String
+  entityId        String?
+  projectId       String?
+  taskId          String?
+  oldValue        String?
+  newValue        String?
+  durationSeconds Int?
+  notes           String?
+  metadata        String?
+}

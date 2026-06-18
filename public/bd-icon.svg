@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- b: left stem -->
+  <rect x="4" y="4" width="7" height="52" fill="#00ff66"/>
+  <!-- b: right bowl (angular, gap at top) -->
+  <polygon points="11,24 11,56 32,56 32,32 24,24" fill="#00ff66" opacity="0.9"/>
+  <!-- b: inner cut (counter) -->
+  <polygon points="11,28 11,52 28,52 28,34 20,28" fill="#0a0a0a"/>
+
+  <!-- d: right stem -->
+  <rect x="53" y="4" width="7" height="52" fill="#00ff66"/>
+  <!-- d: left bowl (angular, gap at top) -->
+  <polygon points="53,24 53,56 32,56 32,32 40,24" fill="#00ff66" opacity="0.9"/>
+  <!-- d: inner cut (counter) -->
+  <polygon points="53,28 53,52 36,52 36,34 44,28" fill="#0a0a0a"/>
+</svg>
