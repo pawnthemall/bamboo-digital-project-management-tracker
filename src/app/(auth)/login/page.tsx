@@ -105,6 +105,17 @@ export default function LoginPage() {
       <p className="mt-4 text-xs text-muted">
         Enter your credentials to continue.
       </p>
+      <div className="mt-4 border border-border bg-surface p-3">
+        <p className="text-xs text-muted font-bold uppercase mb-1">Install as App</p>
+        <p className="text-xs text-muted">
+          You can install BambooDigital as a PWA on your device for quick access:
+        </p>
+        <ul className="mt-1 text-xs text-muted list-disc list-inside space-y-0.5">
+          <li><strong>Chrome / Edge:</strong> Click the icon in the address bar (or menu {'>'} Install)</li>
+          <li><strong>Safari (iOS):</strong> Share {'>'} Add to Home Screen</li>
+          <li><strong>Safari (macOS):</strong> File {'>'} Add to Dock</li>
+        </ul>
+      </div>
     </div>
   );
 }
