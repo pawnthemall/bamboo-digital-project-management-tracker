@@ -50,6 +50,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (body.checklist && Array.isArray(body.checklist) && body.checklist.length > 0) {
+      await prisma.checklistItem.createMany({
+        data: body.checklist.map((item: string, index: number) => ({
+          title: item.trim(),
+          taskId: task.id,
+          order: index,
+        })),
+      });
+    }
+
     await createLedgerEvent({
       eventType: "TASK_CREATED",
       entityType: "Task",

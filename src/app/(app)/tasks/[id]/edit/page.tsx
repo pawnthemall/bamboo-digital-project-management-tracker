@@ -8,6 +8,13 @@ interface ProjectOption {
   name: string;
 }
 
+interface MemberUser {
+  id: string;
+  userId: string;
+  role: string;
+  user: { id: string; email: string; name: string | null };
+}
+
 interface TaskData {
   id: string;
   title: string;
@@ -17,6 +24,7 @@ interface TaskData {
   priority: string;
   status: string;
   estimatedDuration: number;
+  assigneeId: string | null;
 }
 
 export default function EditTaskPage() {
@@ -32,6 +40,8 @@ export default function EditTaskPage() {
   const [priority, setPriority] = useState("MEDIUM");
   const [status, setStatus] = useState("TODO");
   const [estimatedDuration, setEstimatedDuration] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [members, setMembers] = useState<MemberUser[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -60,6 +70,13 @@ export default function EditTaskPage() {
         setPriority(t.priority);
         setStatus(t.status);
         setEstimatedDuration(String(t.estimatedDuration / 3600));
+        setAssigneeId(t.assigneeId || "");
+
+        const memRes = await fetch(`/api/projects/${t.projectId}/members`);
+        if (memRes.ok) {
+          const memData = await memRes.json();
+          setMembers(memData.members || []);
+        }
       } catch {
         setError("Failed to load data");
       } finally {
@@ -86,6 +103,7 @@ export default function EditTaskPage() {
           priority,
           status,
           estimatedDuration: estimatedDuration ? parseFloat(estimatedDuration) * 3600 : 0,
+          assigneeId: assigneeId || null,
         }),
       });
 
@@ -162,7 +180,7 @@ export default function EditTaskPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1 uppercase">Priority</label>
             <select
@@ -188,6 +206,22 @@ export default function EditTaskPage() {
               <option value="IN_PROGRESS">IN_PROGRESS</option>
               <option value="REVIEW">REVIEW</option>
               <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-muted mb-1 uppercase">Assignee</label>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className="w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none"
+            >
+              <option value="">Unassigned</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.user.name || m.user.email}
+                </option>
+              ))}
             </select>
           </div>
 

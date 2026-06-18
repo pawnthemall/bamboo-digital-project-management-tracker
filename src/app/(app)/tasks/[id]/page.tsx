@@ -18,6 +18,7 @@ interface TaskData {
   dueDate: string | null;
   projectId: string;
   project: { id: string; name: string };
+  assignee: { id: string; email: string; name: string | null } | null;
   checklistItems: { id: string; title: string; isCompleted: boolean; order: number }[];
   timeEntries: { id: string; startTime: string; endTime: string | null; pausedSeconds: number; isRunning: boolean }[];
 }
@@ -156,10 +157,14 @@ export default function TaskDetailPage() {
         <p className="text-xs text-muted mb-4">{task.description}</p>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <div className="border border-border bg-surface p-4">
           <p className="text-xs text-muted uppercase">Project</p>
           <p className="text-lg font-bold text-foreground mt-1">{task.project.name}</p>
+        </div>
+        <div className="border border-border bg-surface p-4">
+          <p className="text-xs text-muted uppercase">Assignee</p>
+          <p className="text-lg font-bold text-foreground mt-1">{task.assignee ? task.assignee.name || task.assignee.email : "—"}</p>
         </div>
         <div className="border border-border bg-surface p-4">
           <p className="text-xs text-muted uppercase">Time</p>

@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useFormatDate } from "@/lib/dateFormat";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+
+interface Member {
+  id: string;
+  userId: string;
+  role: string;
+  user: { id: string; email: string; name: string | null };
+}
 
 interface ProjectData {
   id: string;
@@ -27,6 +34,8 @@ interface ProjectData {
     dueDate: string | null;
     estimatedDuration: number;
     actualDuration: number;
+    assigneeId: string | null;
+    assignee: { id: string; email: string; name: string | null } | null;
     checklistItems: { id: string; isCompleted: boolean }[];
   }[];
 }
@@ -36,6 +45,7 @@ const TABS = [
   { key: "tasks", label: "Tasks" },
   { key: "timeline", label: "Timeline" },
   { key: "roadmap", label: "Roadmap" },
+  { key: "members", label: "Members" },
   { key: "reports", label: "Reports" },
   { key: "notes", label: "Notes" },
 ];
@@ -272,6 +282,179 @@ function RoadmapChart({ tasks }: { tasks: GanttTask[] }) {
   );
 }
 
+function QuickAddTask({ projectId, members, onCreated }: { projectId: string; members: Member[]; onCreated: () => void }) {
+  const [title, setTitle] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [priority, setPriority] = useState("MEDIUM");
+  const [checklist, setChecklist] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!title.trim()) return;
+
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        title: title.trim(),
+        projectId,
+        priority,
+        estimatedDuration: estimatedHours ? parseFloat(estimatedHours) * 3600 : 0,
+        startDate: startDate || undefined,
+        dueDate: dueDate || undefined,
+        assigneeId: assigneeId || undefined,
+      };
+
+      const checklistItems = checklist
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (checklistItems.length > 0) {
+        body.checklist = checklistItems;
+      }
+
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to create task");
+        setSaving(false);
+        return;
+      }
+
+      setTitle("");
+      setEstimatedHours("");
+      setPriority("MEDIUM");
+      setChecklist("");
+      setStartDate("");
+      setDueDate("");
+      setAssigneeId("");
+      onCreated();
+      titleRef.current?.focus();
+    } catch {
+      alert("Network error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="border border-border bg-surface p-3 mb-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Name</label>
+          <input
+            ref={titleRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Task name"
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+            required
+          />
+        </div>
+        <div className="w-20">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Hours</label>
+          <input
+            type="number"
+            value={estimatedHours}
+            onChange={(e) => setEstimatedHours(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="0"
+            min="0"
+            step="0.5"
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          />
+        </div>
+        <div className="w-28">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Priority</label>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          >
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+            <option value="URGENT">URGENT</option>
+          </select>
+        </div>
+        <div className="w-32">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Assign</label>
+          <select
+            value={assigneeId}
+            onChange={(e) => setAssigneeId(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          >
+            <option value="">—</option>
+            {members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.user.name || m.user.email}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-40">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Checklist</label>
+          <input
+            type="text"
+            value={checklist}
+            onChange={(e) => setChecklist(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="item1, item2..."
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          />
+        </div>
+        <div className="w-36">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Start</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          />
+        </div>
+        <div className="w-36">
+          <label className="block text-[10px] text-muted uppercase mb-0.5">Due</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full bg-background border border-border px-2 py-1.5 text-sm text-foreground focus:border-accent-green focus:outline-none"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saving || !title.trim()}
+          className="bg-accent-green text-background px-3 py-1.5 text-xs font-bold hover:bg-foreground transition-colors disabled:opacity-50"
+        >
+          {saving ? "..." : "ADD"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function ProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -280,26 +463,55 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [users, setUsers] = useState<{ id: string; email: string; name: string | null }[]>([]);
   const { formatDate } = useFormatDate();
 
-  useEffect(() => {
-    async function fetchProject() {
-      try {
-        const res = await fetch(`/api/projects/${projectId}`);
-        if (!res.ok) {
-          setError("Project not found");
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-        setProject(data.project);
-      } catch {
-        setError("Failed to load project");
-      } finally {
+  async function fetchProject() {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`);
+      if (!res.ok) {
+        setError("Project not found");
         setLoading(false);
+        return;
       }
+      const data = await res.json();
+      setProject(data.project);
+    } catch {
+      setError("Failed to load project");
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function fetchMembers() {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`);
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data.members || []);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
     fetchProject();
+    fetchMembers();
+    fetchUsers();
   }, [projectId]);
 
   async function handleDelete() {
@@ -434,6 +646,16 @@ export default function ProjectDetailPage() {
 
       {activeTab === "tasks" && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-muted uppercase">Quick Add</span>
+            <button
+              onClick={() => router.push(`/tasks/new?projectId=${projectId}`)}
+              className="border border-border px-3 py-1 text-xs text-foreground hover:bg-surface-hover transition-colors"
+            >
+              NEW TASK
+            </button>
+          </div>
+          <QuickAddTask projectId={projectId} members={members} onCreated={fetchProject} />
           {project.tasks.length === 0 ? (
             <p className="text-muted text-sm">No tasks yet.</p>
           ) : (
@@ -459,10 +681,106 @@ export default function ProjectDetailPage() {
                   {task.category && (
                     <p className="text-xs text-muted mt-1">{task.category}</p>
                   )}
+                  {task.assignee && (
+                    <p className="text-xs text-accent-blue mt-1">@{task.assignee.name || task.assignee.email}</p>
+                  )}
                 </div>
               );
             })
           )}
+        </div>
+      )}
+
+      {activeTab === "members" && (
+        <div className="space-y-4">
+          <div className="border border-border bg-surface p-4">
+            <p className="text-xs text-muted uppercase mb-3">Add Member</p>
+            <div className="flex gap-2">
+              <select
+                id="member-select"
+                className="flex-1 bg-background border border-border px-3 py-2 text-sm text-foreground focus:border-accent-green focus:outline-none"
+              >
+                <option value="">Select user...</option>
+                {users
+                  .filter((u) => !members.some((m) => m.userId === u.id))
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.email}
+                    </option>
+                  ))}
+              </select>
+              <select
+                id="member-role"
+                className="w-32 bg-background border border-border px-3 py-2 text-sm text-foreground focus:border-accent-green focus:outline-none"
+              >
+                <option value="MEMBER">MEMBER</option>
+                <option value="MANAGER">MANAGER</option>
+              </select>
+              <button
+                onClick={async () => {
+                  const select = document.getElementById("member-select") as HTMLSelectElement;
+                  const roleSelect = document.getElementById("member-role") as HTMLSelectElement;
+                  const userId = select.value;
+                  const role = roleSelect.value;
+                  if (!userId) return;
+                  try {
+                    const res = await fetch(`/api/projects/${projectId}/members`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ userId, role }),
+                    });
+                    if (res.ok) {
+                      fetchMembers();
+                      select.value = "";
+                    } else {
+                      const data = await res.json();
+                      alert(data.error || "Failed to add member");
+                    }
+                  } catch {
+                    alert("Network error");
+                  }
+                }}
+                className="bg-accent-green text-background px-4 py-2 text-xs font-bold hover:bg-foreground transition-colors"
+              >
+                ADD
+              </button>
+            </div>
+          </div>
+
+          <div className="border border-border bg-surface p-4">
+            <p className="text-xs text-muted uppercase mb-3">Current Members</p>
+            {members.length === 0 ? (
+              <p className="text-sm text-muted">No members yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {members.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between border border-border bg-background p-3">
+                    <div>
+                      <p className="text-sm text-foreground font-bold">{m.user.name || m.user.email}</p>
+                      <p className="text-xs text-muted">{m.user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted uppercase">{m.role}</span>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Remove this member?")) return;
+                          try {
+                            const res = await fetch(`/api/projects/${projectId}/members?userId=${m.userId}`, { method: "DELETE" });
+                            if (res.ok) fetchMembers();
+                          } catch {
+                            alert("Network error");
+                          }
+                        }}
+                        className="text-xs text-accent-red hover:underline"
+                      >
+                        REMOVE
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

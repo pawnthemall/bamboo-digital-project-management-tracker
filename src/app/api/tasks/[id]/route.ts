@@ -10,7 +10,7 @@ export async function GET(
     const { id } = await params;
     const task = await prisma.task.findUnique({
       where: { id },
-      include: { project: true, checklistItems: true, timeEntries: true },
+      include: { project: true, checklistItems: true, timeEntries: true, assignee: { select: { id: true, email: true, name: true } } },
     });
 
     if (!task) {
@@ -31,7 +31,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, description, projectId, category, priority, status, estimatedDuration, actualDuration, startDate, dueDate } = body;
+    const { title, description, projectId, category, priority, status, estimatedDuration, actualDuration, startDate, dueDate, assigneeId } = body;
 
     const existing = await prisma.task.findUnique({ where: { id } });
     if (!existing) {
@@ -51,6 +51,7 @@ export async function PATCH(
         ...(actualDuration !== undefined && { actualDuration }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+        ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
       },
     });
 

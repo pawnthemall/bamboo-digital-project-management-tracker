@@ -8,6 +8,13 @@ interface ProjectOption {
   name: string;
 }
 
+interface MemberUser {
+  id: string;
+  userId: string;
+  role: string;
+  user: { id: string; email: string; name: string | null };
+}
+
 export default function NewTaskPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -18,6 +25,8 @@ export default function NewTaskPage() {
   const [priority, setPriority] = useState("MEDIUM");
   const [status, setStatus] = useState("TODO");
   const [estimatedDuration, setEstimatedDuration] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [members, setMembers] = useState<MemberUser[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +45,23 @@ export default function NewTaskPage() {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    async function fetchMembers() {
+      if (!projectId) return;
+      try {
+        const res = await fetch(`/api/projects/${projectId}/members`);
+        if (res.ok) {
+          const data = await res.json();
+          setMembers(data.members || []);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    fetchMembers();
+    setAssigneeId("");
+  }, [projectId]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -53,6 +79,7 @@ export default function NewTaskPage() {
           priority,
           status,
           estimatedDuration: estimatedDuration ? parseFloat(estimatedDuration) * 3600 : 0,
+          assigneeId: assigneeId || undefined,
         }),
       });
 
@@ -130,7 +157,7 @@ export default function NewTaskPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1 uppercase">Priority</label>
             <select
@@ -156,6 +183,22 @@ export default function NewTaskPage() {
               <option value="IN_PROGRESS">IN_PROGRESS</option>
               <option value="REVIEW">REVIEW</option>
               <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-muted mb-1 uppercase">Assignee</label>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className="w-full bg-background border border-border px-3 py-2 text-foreground focus:border-accent-green focus:outline-none"
+            >
+              <option value="">Unassigned</option>
+              {members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.user.name || m.user.email}
+                </option>
+              ))}
             </select>
           </div>
 

@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: projectId } = await params;
+    const members = await prisma.projectMember.findMany({
+      where: { projectId },
+      include: { user: { select: { id: true, email: true, name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json({ members });
+  } catch (error) {
+    console.error("GET /api/projects/[id]/members error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
