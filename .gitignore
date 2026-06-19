@@ -49,3 +49,9 @@ prisma/*.db
 build_log*.txt
 
 /src/generated/prisma
+
+# ide rules / workflows
+/.devin
+
+# planning docs
+/docs
