@@ -63,7 +63,6 @@ async function main() {
 
   const existingMap = new Map(existingTasks.map((t) => [t.title, t]));
 
-  let totalActual = 0;
   const now = Date.now();
   let timeOffset = 30 * 24 * 3600 * 1000; // Start ~30 days ago for Phase 1
 
@@ -71,7 +70,6 @@ async function main() {
   for (const t of PHASE1_TASKS) {
     const estSeconds = Math.round(t.est * 3600);
     const actSeconds = Math.round(t.act * 3600);
-    totalActual += actSeconds;
 
     const existing = existingMap.get(t.title);
 
@@ -154,7 +152,6 @@ async function main() {
   for (const t of PHASE2_TASKS) {
     const estSeconds = Math.round(t.est * 3600);
     const actSeconds = Math.round(t.act * 3600);
-    totalActual += actSeconds;
 
     const existing = existingMap.get(t.title);
     const startTime = new Date(now - timeOffset);

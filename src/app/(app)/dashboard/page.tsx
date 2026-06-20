@@ -163,7 +163,7 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 10 }} tickFormatter={chartDateFormatter} />
                 <YAxis tick={{ fill: "#888", fontSize: 10 }} domain={[0, 100]} />
-                <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} formatter={(v: any) => `${v}%`} />
+                <Tooltip contentStyle={{ backgroundColor: "#0a0a0a", border: "1px solid #333" }} formatter={(v: string | number | readonly (string | number)[] | undefined) => `${Array.isArray(v) ? v[0] : v}%`} />
                 <Area type="monotone" dataKey="rate" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
               </AreaChart>
             </ResponsiveContainer>

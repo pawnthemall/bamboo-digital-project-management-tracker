@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { createLedgerEvent } from "@/lib/ledger";
+import { formatZodError, updateTaskSchema } from "@/lib/validation";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
     const task = await prisma.task.findUnique({
       where: { id },
@@ -29,30 +35,38 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
-    const body = await req.json();
-    const { title, description, projectId, category, priority, status, estimatedDuration, actualDuration, startDate, dueDate, assigneeId } = body;
+    const raw = await req.json();
+    const parsed = updateTaskSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+    const { title, description, category, priority, status, estimatedDuration, actualDuration, startDate, dueDate, assigneeId } = parsed.data;
 
     const existing = await prisma.task.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    const updateData: Prisma.TaskUncheckedUpdateInput = {
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(category !== undefined && { category }),
+      ...(priority !== undefined && { priority }),
+      ...(status !== undefined && { status }),
+      ...(estimatedDuration !== undefined && { estimatedDuration }),
+      ...(actualDuration !== undefined && { actualDuration }),
+      ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+      ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
+    };
+
     const task = await prisma.task.update({
       where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(projectId !== undefined && { projectId }),
-        ...(category !== undefined && { category }),
-        ...(priority !== undefined && { priority }),
-        ...(status !== undefined && { status }),
-        ...(estimatedDuration !== undefined && { estimatedDuration }),
-        ...(actualDuration !== undefined && { actualDuration }),
-        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
-        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
-        ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
-      },
+      data: updateData,
     });
 
     if (status && status !== existing.status) {
@@ -89,6 +103,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
 
     const existing = await prisma.task.findUnique({ where: { id } });

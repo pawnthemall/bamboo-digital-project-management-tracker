@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(startOfDay);
     startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const sevenDays = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
 
     const [
@@ -28,7 +31,7 @@ export async function GET() {
       prisma.task.count({ where: { status: "COMPLETED" } }),
       prisma.task.count({ where: { status: "COMPLETED", updatedAt: { gte: startOfDay } } }),
       prisma.task.count({ where: { status: "COMPLETED", updatedAt: { gte: startOfWeek } } }),
-      prisma.timeEntry.findMany({ where: { endTime: { not: null } }, include: { task: true } }),
+      prisma.timeEntry.findMany({ where: { endTime: { not: null } }, include: { task: { include: { project: true } } } }),
       prisma.task.findMany({
         where: { status: "TODO", dueDate: { lte: sevenDays } },
         include: { project: true },
@@ -58,8 +61,7 @@ export async function GET() {
     const timeByProject: Record<string, { name: string; hours: number }> = {};
     for (const entry of timeEntries) {
       const pid = entry.task.projectId;
-      const p = entry.task.projectId ? await prisma.project.findUnique({ where: { id: pid } }) : null;
-      const name = p?.name || "Unknown";
+      const name = entry.task.project?.name || "Unknown";
       const sec = entry.endTime
         ? Math.floor((entry.endTime.getTime() - entry.startTime.getTime()) / 1000) - entry.pausedSeconds
         : 0;

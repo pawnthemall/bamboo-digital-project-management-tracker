@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { createLedgerEvent } from "@/lib/ledger";
+import { formatZodError, updateProjectSchema } from "@/lib/validation";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
     const project = await prisma.project.findUnique({
       where: { id },
@@ -29,9 +34,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
-    const body = await req.json();
-    const { name, description, status, color, startDate, targetDate, estimatedHours, actualHours, remainingHours } = body;
+    const raw = await req.json();
+    const parsed = updateProjectSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+    const { name, description, status, color, startDate, targetDate, estimatedHours, actualHours, remainingHours } = parsed.data;
 
     const existing = await prisma.project.findUnique({ where: { id } });
     if (!existing) {
@@ -75,6 +87,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
 
     const existing = await prisma.project.findUnique({ where: { id } });

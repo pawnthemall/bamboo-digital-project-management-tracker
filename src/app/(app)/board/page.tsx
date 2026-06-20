@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { useTasks, useUpdateTask } from "@/hooks/useTasks";
@@ -25,11 +25,8 @@ function priorityDot(priority: string) {
 export default function BoardPage() {
   const { data: tasks, isLoading } = useTasks();
   const updateTask = useUpdateTask();
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-
   const onDragEnd = useCallback(
     (result: DropResult) => {
-      setDraggingId(null);
       if (!result.destination) return;
       const sourceStatus = result.source.droppableId;
       const destStatus = result.destination.droppableId;
@@ -44,7 +41,7 @@ export default function BoardPage() {
   if (isLoading) return <div className="text-muted text-sm">Loading...</div>;
 
   return (
-    <DragDropContext onDragEnd={onDragEnd} onDragStart={(start) => setDraggingId(start.draggableId)}>
+    <DragDropContext onDragEnd={onDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {COLUMNS.map((col) => {
           const colTasks = (tasks || []).filter((t) => t.status === col.key);

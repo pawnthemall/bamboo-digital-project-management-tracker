@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useFormatDate } from "@/lib/dateFormat";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -104,7 +104,7 @@ interface GanttTask {
   actualDuration: number;
 }
 
-function ProjectGantt({ tasks, projectColor, onTaskClick }: { tasks: GanttTask[]; projectColor: string; onTaskClick: (id: string) => void }) {
+function ProjectGantt({ tasks, onTaskClick }: { tasks: GanttTask[]; onTaskClick: (id: string) => void }) {
   const { formatDate } = useFormatDate();
 
   const tasksWithDates = tasks.filter((t) => t.startDate && t.dueDate);
@@ -122,7 +122,6 @@ function ProjectGantt({ tasks, projectColor, onTaskClick }: { tasks: GanttTask[]
 
   const dayMs = 24 * 3600 * 1000;
   const totalDays = Math.max(1, Math.ceil(range / dayMs));
-  const labelInterval = Math.ceil(totalDays / 10);
 
   const sortedTasks = [...tasksWithDates].sort((a, b) => {
     return new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime();
@@ -267,7 +266,10 @@ function RoadmapChart({ tasks }: { tasks: GanttTask[] }) {
               <Tooltip
                 contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", fontSize: "12px" }}
                 itemStyle={{ color: "#e2e8f0" }}
-                formatter={(value: any) => [`${value} tasks`, "Completed"]}
+                formatter={(value: string | number | readonly (string | number)[] | undefined) => {
+                  const val = Array.isArray(value) ? value[0] : value;
+                  return [`${val ?? 0} tasks`, "Completed"];
+                }}
               />
               <Bar dataKey="count" radius={[2, 2, 0, 0]}>
                 {data.map((_, i) => (
@@ -467,7 +469,7 @@ export default function ProjectDetailPage() {
   const [users, setUsers] = useState<{ id: string; email: string; name: string | null }[]>([]);
   const { formatDate } = useFormatDate();
 
-  async function fetchProject() {
+  const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}`);
       if (!res.ok) {
@@ -482,9 +484,9 @@ export default function ProjectDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [projectId]);
 
-  async function fetchMembers() {
+  const fetchMembers = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}/members`);
       if (res.ok) {
@@ -494,9 +496,9 @@ export default function ProjectDetailPage() {
     } catch {
       // ignore
     }
-  }
+  }, [projectId]);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/users");
       if (res.ok) {
@@ -506,13 +508,22 @@ export default function ProjectDetailPage() {
     } catch {
       // ignore
     }
-  }
+  }, []);
 
   useEffect(() => {
-    fetchProject();
-    fetchMembers();
-    fetchUsers();
-  }, [projectId]);
+    let active = true;
+    async function load() {
+      await fetchProject();
+      if (!active) return;
+      await fetchMembers();
+      if (!active) return;
+      await fetchUsers();
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [fetchProject, fetchMembers, fetchUsers, projectId]);
 
   async function handleDelete() {
     if (!confirm("Delete this project?")) return;
@@ -809,7 +820,7 @@ export default function ProjectDetailPage() {
       )}
 
       {activeTab === "timeline" && (
-        <ProjectGantt tasks={project.tasks} projectColor={project.color} onTaskClick={(id) => router.push(`/tasks/${id}`)} />
+        <ProjectGantt tasks={project.tasks} onTaskClick={(id) => router.push(`/tasks/${id}`)} />
       )}
 
       {activeTab === "roadmap" && <RoadmapChart tasks={project.tasks} />}

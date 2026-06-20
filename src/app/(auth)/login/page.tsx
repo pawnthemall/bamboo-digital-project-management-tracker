@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,26 +16,33 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!(window.navigator as { standalone?: boolean }).standalone;
+  });
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => {
-      setDeferredPrompt(null);
-      setIsInstalled(true);
-    });
-    if ((window.navigator as { standalone?: boolean }).standalone) {
-      setIsInstalled(true);
-    }
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+  const handleBeforeInstall = useCallback((e: Event) => {
+    e.preventDefault();
+    setDeferredPrompt(e as BeforeInstallPromptEvent);
   }, []);
+
+  const handleAppInstalled = useCallback(() => {
+    setDeferredPrompt(null);
+    setIsInstalled(true);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, [handleBeforeInstall, handleAppInstalled]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,6 +86,7 @@ export default function LoginPage() {
         }
       `}</style>
       <div className="flex items-center gap-2 mb-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/bd-icon.svg" alt="" width={28} height={28} />
         <h1 className="text-2xl font-bold text-foreground text-glow">
           BambooDigital<span className="inline-block w-2.5 h-5 bg-accent-green ml-0.5 crt-cursor" />
@@ -159,8 +172,8 @@ export default function LoginPage() {
               type="button"
               onClick={async () => {
                 if (!deferredPrompt) return;
-                await (deferredPrompt as any).prompt();
-                const { outcome } = await (deferredPrompt as any).userChoice;
+                await deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === "accepted") {
                   setDeferredPrompt(null);
                 }

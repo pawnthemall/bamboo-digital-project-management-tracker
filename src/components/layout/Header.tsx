@@ -22,6 +22,7 @@ export default function Header() {
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(90deg,transparent_0%,rgba(0,255,102,0.03)_50%,transparent_100%)]" />
       <div className="flex items-center gap-3 relative z-10">
         <div className="relative flex items-center justify-center w-8 h-8 rounded-md bg-[radial-gradient(circle,rgba(0,255,102,0.25)_0%,transparent_70%)] shadow-[0_0_12px_rgba(0,255,102,0.4)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/kimi-green.svg"
             alt="Kimi AI"

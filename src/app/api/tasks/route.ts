@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { createLedgerEvent } from "@/lib/ledger";
+import { createTaskSchema, formatZodError } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
     const status = searchParams.get("status");
@@ -27,33 +32,36 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { title, description, projectId, category, priority, status, estimatedDuration, startDate, dueDate, assigneeId } = body;
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
 
-    if (!title || !projectId) {
-      return NextResponse.json({ error: "Title and projectId are required" }, { status: 400 });
+    const raw = await req.json();
+    const parsed = createTaskSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
+    const { title, description, projectId, category, priority, status, estimatedDuration, startDate, dueDate, assigneeId, checklist } = parsed.data;
 
     const task = await prisma.task.create({
       data: {
         title,
-        description: description || "",
+        description: description ?? "",
         projectId,
-        assigneeId: assigneeId || null,
-        category: category || "",
-        priority: priority || "MEDIUM",
-        status: status || "TODO",
-        estimatedDuration: estimatedDuration || 0,
+        assigneeId: assigneeId ?? null,
+        category: category ?? "",
+        priority: priority ?? "MEDIUM",
+        status: status ?? "TODO",
+        estimatedDuration: estimatedDuration ?? 0,
         actualDuration: 0,
         startDate: startDate ? new Date(startDate) : null,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
 
-    if (body.checklist && Array.isArray(body.checklist) && body.checklist.length > 0) {
+    if (checklist && checklist.length > 0) {
       await prisma.checklistItem.createMany({
-        data: body.checklist.map((item: string, index: number) => ({
-          title: item.trim(),
+        data: checklist.map((item, index) => ({
+          title: item,
           taskId: task.id,
           order: index,
         })),

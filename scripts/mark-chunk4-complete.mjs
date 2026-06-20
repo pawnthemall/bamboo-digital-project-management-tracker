@@ -16,7 +16,6 @@ async function main() {
     "Chunk 3: Project create/edit modal",
   ];
 
-  let totalActual = 0;
   for (const title of chunk4Titles) {
     const task = await prisma.task.findFirst({ where: { title } });
     if (task) {
@@ -33,7 +32,6 @@ async function main() {
         where: { taskId: task.id },
         data: { isCompleted: true },
       });
-      totalActual += task.estimatedDuration;
       console.log(`Marked COMPLETED: ${title}`);
     }
   }

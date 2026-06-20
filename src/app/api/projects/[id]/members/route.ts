@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAuth } from "@/lib/auth";
+import { formatZodError, projectMemberSchema } from "@/lib/validation";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id: projectId } = await params;
     const members = await prisma.projectMember.findMany({
       where: { projectId },
@@ -25,7 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const { id: projectId } = await params;
-    const { userId, role = "MEMBER" } = await req.json();
+    const raw = await req.json();
+    const parsed = projectMemberSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+    const { userId, role = "MEMBER" } = parsed.data;
 
     // Check if current user is ADMIN or project manager
     const isAdmin = currentUser.role === "ADMIN";
@@ -92,9 +101,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const { id: projectId } = await params;
-    const { userId, role } = await req.json();
-    if (!userId || !role) {
-      return NextResponse.json({ error: "userId and role required" }, { status: 400 });
+    const raw = await req.json();
+    const parsed = projectMemberSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+    const { userId, role } = parsed.data;
+    if (!role) {
+      return NextResponse.json({ error: "role is required" }, { status: 400 });
     }
 
     const isAdmin = currentUser.role === "ADMIN";

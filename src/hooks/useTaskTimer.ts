@@ -19,39 +19,54 @@ function formatTime(totalSeconds: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+function getInitialState() {
+  if (typeof window === "undefined") {
+    return { elapsed: 0, isRunning: false, activeTaskId: null, activeEntryId: null, state: null };
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return { elapsed: 0, isRunning: false, activeTaskId: null, activeEntryId: null, state: null };
+  }
+  try {
+    const state: TimerState = JSON.parse(raw);
+    if (state.isRunning && state.startTime) {
+      const now = Date.now();
+      const elapsedSec = Math.floor((now - state.startTime) / 1000) - state.pausedSeconds;
+      return {
+        elapsed: Math.max(0, elapsedSec),
+        isRunning: true,
+        activeTaskId: state.taskId,
+        activeEntryId: state.entryId,
+        state,
+      };
+    }
+    return { elapsed: 0, isRunning: false, activeTaskId: null, activeEntryId: null, state: null };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return { elapsed: 0, isRunning: false, activeTaskId: null, activeEntryId: null, state: null };
+  }
+}
+
 export function useTaskTimer() {
-  const [elapsed, setElapsed] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stateRef = useRef<TimerState | null>(null);
+  const initial = getInitialState();
+  stateRef.current = initial.state;
 
-  // Restore timer from localStorage on mount
+  const [elapsed, setElapsed] = useState(initial.elapsed);
+  const [isRunning, setIsRunning] = useState(initial.isRunning);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(initial.activeTaskId);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(initial.activeEntryId);
+
+  // Resume ticking if the timer was restored from localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const state: TimerState = JSON.parse(raw);
-        if (state.isRunning && state.startTime) {
-          const now = Date.now();
-          const elapsedSec = Math.floor((now - state.startTime) / 1000) - state.pausedSeconds;
-          setElapsed(Math.max(0, elapsedSec));
-          setIsRunning(true);
-          setActiveTaskId(state.taskId);
-          setActiveEntryId(state.entryId);
-          stateRef.current = state;
-          startTicking(state.startTime, state.pausedSeconds);
-        }
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
+    if (stateRef.current && isRunning) {
+      startTicking(stateRef.current.startTime, stateRef.current.pausedSeconds);
     }
-
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [isRunning]);
 
   function startTicking(startTime: number, pausedSeconds: number) {
     if (intervalRef.current) clearInterval(intervalRef.current);

@@ -50,15 +50,21 @@ export function updateServiceWorker() {
 }
 
 // Listen for beforeinstallprompt to show custom install UI
-let deferredPrompt: Event | null = null;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
-export function listenForInstallPrompt(callback: (prompt: Event) => void) {
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
+
+export function listenForInstallPrompt(callback: (prompt: BeforeInstallPromptEvent) => void) {
   if (typeof window === "undefined") return;
 
   const handler = (e: Event) => {
     e.preventDefault();
-    deferredPrompt = e;
-    callback(e);
+    const promptEvent = e as BeforeInstallPromptEvent;
+    deferredPrompt = promptEvent;
+    callback(promptEvent);
   };
 
   window.addEventListener("beforeinstallprompt", handler);
@@ -71,10 +77,9 @@ export function listenForInstallPrompt(callback: (prompt: Event) => void) {
 export async function triggerInstall() {
   if (!deferredPrompt) return false;
 
-  const promptEvent = deferredPrompt as any;
-  promptEvent.prompt();
+  deferredPrompt.prompt();
 
-  const { outcome } = await promptEvent.userChoice;
+  const { outcome } = await deferredPrompt.userChoice;
   deferredPrompt = null;
 
   return outcome === "accepted";

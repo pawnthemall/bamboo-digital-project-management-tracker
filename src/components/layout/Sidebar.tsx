@@ -28,6 +28,7 @@ export default function Sidebar() {
     <aside className="w-56 border-r border-border bg-surface flex flex-col shrink-0">
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/bd-icon.svg" alt="" width={24} height={24} className="shrink-0" />
           <h2 className="text-lg font-bold text-foreground text-glow">BambooDigital</h2>
         </div>

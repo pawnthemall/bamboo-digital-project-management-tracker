@@ -15,32 +15,26 @@ export async function proxy(req: NextRequest) {
   }
 
   const token = req.cookies.get("token")?.value;
-  
+
   if (!token) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  try {
-    const payload = await verifyToken(token);
-    
-    if (!payload) {
-      const response = NextResponse.redirect(new URL("/login", req.url));
-      response.cookies.delete("token");
-      return response;
-    }
+  const payload = await verifyToken(token);
 
-    const response = NextResponse.next();
-    response.headers.set("x-user-id", payload.userId);
-    response.headers.set("x-user-email", payload.email);
-    
-    return response;
-  } catch (error) {
+  if (!payload) {
     const response = NextResponse.redirect(new URL("/login", req.url));
     response.cookies.delete("token");
     return response;
   }
+
+  const response = NextResponse.next();
+  response.headers.set("x-user-id", payload.userId);
+  response.headers.set("x-user-email", payload.email);
+
+  return response;
 }
 
 export const config = {

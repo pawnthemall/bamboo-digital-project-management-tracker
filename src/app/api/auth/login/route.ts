@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { signToken } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { createLedgerEvent } from "@/lib/ledger";
+import { formatZodError, loginSchema } from "@/lib/validation";
 import { randomUUID } from "crypto";
 
 function parseDeviceInfo(userAgent: string) {
@@ -27,14 +28,12 @@ function parseDeviceInfo(userAgent: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, rememberMe } = await req.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password required" },
-        { status: 400 }
-      );
+    const raw = await req.json();
+    const parsed = loginSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
+    const { email, password, rememberMe } = parsed.data;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {

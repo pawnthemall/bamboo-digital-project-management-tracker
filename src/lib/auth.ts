@@ -1,10 +1,14 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "./prisma";
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "bamboo-digital-secret-key-change-in-production"
-);
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
+const SECRET = new TextEncoder().encode(JWT_SECRET);
 
 export async function signToken(payload: { userId: string; email: string; deviceToken?: string }) {
   const jwt = new SignJWT(payload as unknown as Record<string, unknown>)
@@ -50,4 +54,16 @@ export async function getCurrentUser() {
   });
 
   return user;
+}
+
+type AuthResult =
+  | { user: { id: string; email: string; role: string; name: string | null }; response: null }
+  | { user: null; response: NextResponse };
+
+export async function requireAuth(): Promise<AuthResult> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { user: null, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  return { user, response: null };
 }

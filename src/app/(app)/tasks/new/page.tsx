@@ -46,7 +46,7 @@ export default function NewTaskPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchMembers() {
+    async function loadMembers() {
       if (!projectId) return;
       try {
         const res = await fetch(`/api/projects/${projectId}/members`);
@@ -58,8 +58,7 @@ export default function NewTaskPage() {
         // ignore
       }
     }
-    fetchMembers();
-    setAssigneeId("");
+    loadMembers();
   }, [projectId]);
 
   async function handleSubmit(e: React.FormEvent) {

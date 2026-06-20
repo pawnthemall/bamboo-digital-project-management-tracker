@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { createLedgerEvent } from "@/lib/ledger";
+import { checklistUpdateSchema, formatZodError } from "@/lib/validation";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { id } = await params;
-    const body = await req.json();
-    const { isCompleted } = body;
+    const raw = await req.json();
+    const parsed = checklistUpdateSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+    const { isCompleted } = parsed.data;
 
     const existing = await prisma.checklistItem.findUnique({
       where: { id },

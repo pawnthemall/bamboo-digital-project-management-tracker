@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
+import { formatZodError, reportsQuerySchema } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { searchParams } = new URL(req.url);
-    const period = searchParams.get("period") || "weekly";
+    const query = reportsQuerySchema.safeParse({ period: searchParams.get("period") || undefined });
+    if (!query.success) {
+      return NextResponse.json({ error: formatZodError(query.error) }, { status: 400 });
+    }
+    const period = query.data.period ?? "weekly";
 
     const now = new Date();
     let startDate: Date;
-    let endDate = new Date(now);
+    const endDate = new Date(now);
 
     if (period === "daily") {
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());

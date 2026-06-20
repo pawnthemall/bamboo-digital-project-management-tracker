@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { subDays, startOfDay, endOfDay, format, startOfWeek, endOfWeek } from "date-fns";
+import { requireAuth } from "@/lib/auth";
+import { analyticsQuerySchema, formatZodError } from "@/lib/validation";
+import { subDays, startOfDay, endOfDay, format, startOfWeek } from "date-fns";
 
 export async function GET(request: Request) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get("days") || "30", 10);
+    const query = analyticsQuerySchema.safeParse({ days: searchParams.get("days") || undefined });
+    if (!query.success) {
+      return NextResponse.json({ error: formatZodError(query.error) }, { status: 400 });
+    }
+    const days = query.data.days ?? 30;
 
     const now = new Date();
     const startDate = startOfDay(subDays(now, days));

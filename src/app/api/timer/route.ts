@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { createLedgerEvent } from "@/lib/ledger";
+import { formatZodError, timerActionSchema } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
+
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get("taskId");
 
-    const where: Record<string, unknown> = { isRunning: true };
+    const where: Record<string, unknown> = { isRunning: true, userId: user.id };
     if (taskId) where.taskId = taskId;
 
     const entry = await prisma.timeEntry.findFirst({
@@ -25,12 +30,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, taskId, entryId, pausedSeconds } = body;
+    const { user, response: authResponse } = await requireAuth();
+    if (!user) return authResponse;
 
-    if (!action || !taskId) {
-      return NextResponse.json({ error: "action and taskId are required" }, { status: 400 });
+    const raw = await req.json();
+    const parsed = timerActionSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
+    const { action, taskId, entryId, pausedSeconds } = parsed.data;
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -42,15 +50,16 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case "start": {
-        // Stop any other running timers first
+        // Stop any other running timers for this user first
         await prisma.timeEntry.updateMany({
-          where: { isRunning: true },
+          where: { isRunning: true, userId: user.id },
           data: { isRunning: false, endTime: new Date() },
         });
 
         const entry = await prisma.timeEntry.create({
           data: {
             taskId,
+            userId: user.id,
             startTime: new Date(),
             isRunning: true,
             pausedSeconds: 0,
@@ -80,7 +89,7 @@ export async function POST(req: NextRequest) {
         }
 
         const entry = await prisma.timeEntry.update({
-          where: { id: entryId },
+          where: { id: entryId, userId: user.id },
           data: {
             endTime: new Date(),
             isRunning: false,
@@ -106,18 +115,19 @@ export async function POST(req: NextRequest) {
         }
 
         // Get previous entry to carry over pausedSeconds
-        const prevEntry = await prisma.timeEntry.findUnique({ where: { id: entryId } });
+        const prevEntry = await prisma.timeEntry.findUnique({ where: { id: entryId, userId: user.id } });
         const carryPaused = prevEntry?.pausedSeconds || 0;
 
-        // Stop any other running timers first
+        // Stop any other running timers for this user first
         await prisma.timeEntry.updateMany({
-          where: { isRunning: true },
+          where: { isRunning: true, userId: user.id },
           data: { isRunning: false, endTime: new Date() },
         });
 
         const entry = await prisma.timeEntry.create({
           data: {
             taskId,
+            userId: user.id,
             startTime: new Date(),
             isRunning: true,
             pausedSeconds: carryPaused,
@@ -148,7 +158,7 @@ export async function POST(req: NextRequest) {
 
         const now = new Date();
         const entry = await prisma.timeEntry.update({
-          where: { id: entryId },
+          where: { id: entryId, userId: user.id },
           data: {
             endTime: now,
             isRunning: false,
@@ -190,7 +200,7 @@ export async function POST(req: NextRequest) {
 
         const now = new Date();
         const entry = await prisma.timeEntry.update({
-          where: { id: entryId },
+          where: { id: entryId, userId: user.id },
           data: {
             endTime: now,
             isRunning: false,

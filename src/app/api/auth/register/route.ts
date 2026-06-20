@@ -3,17 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { signToken } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { createLedgerEvent } from "@/lib/ledger";
+import { formatZodError, registerSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password required" },
-        { status: 400 }
-      );
+    const raw = await req.json();
+    const parsed = registerSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
+    const { email, password } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
